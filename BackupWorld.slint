@@ -1,0 +1,44 @@
+import { StandardButton, GridBox, CheckBox, LineEdit, ListView, TabWidget } from "std-widgets.slint";
+
+export component BackupWorld inherits Dialog {
+    in-out property <[string]> worlds;
+    property <[string]> name;
+    // out property name-2 <=> name-2.text;
+    callback Save();
+
+    title: "Minecraft World Backup";
+    preferred-width: 600px;
+    preferred-height: 400px;
+    default-font-family: "Consolas";
+    default-font-size: 16px;
+    background: @linear-gradient(-20deg, #fff, #298001);
+
+    TabWidget {
+        Tab {
+            title: "World List";
+
+            ListView {
+                for world[i] in root.worlds : HorizontalLayout {
+                    padding: 5px;
+                    spacing: 5px;
+                    CheckBox {text: world; checked: true; toggled => {worlds[i]=""}}
+                }
+                
+            }
+        }
+
+        Tab {
+            title: "Settings";
+            Text {
+                text: "World Backup";
+                max-width: self.min-width;
+            }
+            // name-2 := LineEdit {
+            //     max-width: 50px;
+            //     max-height: 25px;
+            // }
+        }
+    }
+    
+    StandardButton {kind: close;}
+}
