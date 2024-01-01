@@ -476,3 +476,5 @@ do
     echo -e "Completed backup of ${names[$i+1]}\n"
 done
 
+echo "Backup Completed"
+read -p "Press any key to continue..."
