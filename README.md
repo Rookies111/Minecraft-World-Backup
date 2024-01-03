@@ -4,7 +4,7 @@
 
 # Usage
 - **TUI Version**: 
-<img src="Preview_Image.png">
+<img src="Preview-Image.png">
 **control**
     - up: up
     - down: down
