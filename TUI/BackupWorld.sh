@@ -265,6 +265,7 @@ ui_widget_select() {
     local cur=0 oldcur=0 collect="item" select="one" 
     local sel="" marg="" drawn=false ref v=""
     local opt_clearonexit=false opt_leaveonexit=false
+    local text="" debug=false
     export UI_WIDGET_RC=-1
     while (( "$#" )); do
         opt="${1}"; shift
@@ -272,14 +273,18 @@ ui_widget_select() {
             -k) collect="key";;
             -i) collect="item";;
             -s) collect="selection";;
+            -t) collect="text";;
             -m) select="multi";;
             -l) opt_clearonexit=true; opt_leaveonexit=true;;
             -c) opt_clearonexit=true;;
+            -debug) debug=true;; 
             *)
             if [[ "${collect}" == "selection" ]]; then
                 selection+=("${opt}")
             elif [[ "${collect}" == "key" ]]; then
                 keys+=("${opt}")
+            elif [[ "${collect}" == "text" ]]; then
+                text="${opt}"
             else
                 menu+=("$opt")
             fi;;
@@ -317,6 +322,20 @@ ui_widget_select() {
         local str=""
         for i in "${menu[@]}"; do str+="\e[2K\r\e[1A"; done
         echo -en "${str}"
+    }
+
+    reset_terminal() {
+        # Reset the terminal to a useable state (undo all changes).
+        # '\e[?7h':   Re-enable line wrapping.
+        # '\e[?25h':  Unhide the cursor.
+        # '\e[2J':    Clear the terminal.
+        # '\e[;r':    Set the scroll region to its default value.
+        #             Also sets cursor to (0,0).
+        # '\e[?1049l: Restore main screen buffer.
+        printf '\e[?7h\e[?25h\e[2J\e[;r\e[?1049l'
+
+        # Show user input.
+        stty echo
     }
 
     ##
@@ -368,6 +387,11 @@ ui_widget_select() {
         echo -en "${str}"
         export drawn=true
     }
+
+    if ! $debug; then
+        reset_terminal
+    fi
+    echo -e "${text}"
 
     # initial draw
     draw_menu initial 
@@ -445,36 +469,46 @@ ui_widget_select() {
     done
 }
 
+# Load configuration
+source="/home/rookies111/.var/app/io.mrarm.mcpelauncher/data/mcpelauncher/games/com.mojang/minecraftWorlds"
+destination="/media/rookies111/Storage/MinecraftWorld"
+
 # Get current date and time
 NOW=$( date '+%F_%H%M%S' )
 
 # Change working directory to where Minecraft World is stored
-cd ~/.var/app/io.mrarm.mcpelauncher/data/mcpelauncher/games/com.mojang/minecraftWorlds
+cd $source
 # Get all Minecraft Worlds from directory
 declare -a worlds=()
 declare -a names=()
 i=1
-for f in *
-do
+for f in *; do
     worlds[$i]=$f
     names[$i]=`cat $f/levelname.txt | sed 's/§0//g;s/§1//g;s/§2//g;s/§3//g;s/§4//g;s/§5//g;s/§6//g;s/§7//g;s/§8//g;s/§9//g;'`
     ((++i))
 done
 
-echo -e "\e[4mMenu: Select Minecraft World(s) you want to backup\e[24m"
-ui_widget_select -l -m -i "${names[@]}"
-# echo "Selected item(s): ${UI_WIDGET_RC[@]}";
-echo ""
-echo -e "\e[4mStart Backing up selected Minecraft World(s)\e[24m"
-for i in ${UI_WIDGET_RC[@]}
-do
+# Get User responed from menu TUI
+# echo -e 
+ui_widget_select -l -m -i "${names[@]}" -t "\e[4mMenu: Select Minecraft World(s) you want to backup\e[24m"
+
+# Check if Useer exit program
+if [[ ${?} -eq 1 || "${UI_WIDGET_RC[@]}" == "" ]]; then
+    exit
+fi
+
+# Start backup
+echo -e "\n\e[4mStart Backing up selected Minecraft World(s)\e[24m"
+
+for i in ${UI_WIDGET_RC[@]}; do
     echo "Backing up ${names[$i+1]}..."
     # Zip the Minecraft World
     zip -qr "${worlds[$i+1]} $NOW.zip" ${worlds[$i+1]}
     # Move to backup directory
-    mv "${worlds[$i+1]} $NOW.zip" /media/rookies111/Storage/MinecraftWorld
+    mv "${worlds[$i+1]} $NOW.zip" $destination
     echo -e "Completed backup of ${names[$i+1]}\n"
 done
-
+# Annouce backup completed and wait for User to press any key to exit program
 echo "Backup Completed"
 read -p "Press any key to continue..."
+
