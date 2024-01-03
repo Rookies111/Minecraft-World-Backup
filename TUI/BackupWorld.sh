@@ -478,19 +478,18 @@ NOW=$( date '+%F_%H%M%S' )
 
 # Change working directory to where Minecraft World is stored
 cd $source
+
 # Get all Minecraft Worlds from directory
 declare -a worlds=()
 declare -a names=()
-i=1
-for f in *; do
-    worlds[$i]=$f
-    names[$i]=`cat $f/levelname.txt | sed 's/§0//g;s/§1//g;s/§2//g;s/§3//g;s/§4//g;s/§5//g;s/§6//g;s/§7//g;s/§8//g;s/§9//g;'`
-    ((++i))
+declare -r format_pattern='s/ /_/g;s/§0//g;s/§1//g;s/§2//g;s/§3//g;s/§4//g;s/§5//g;s/§6//g;s/§7//g;s/§8//g;s/§9//g;'
+for world in *; do
+    worlds+=($world)
+    names+=(`cat $world/levelname.txt | sed "$format_pattern"`)
 done
 
 # Get User responed from menu TUI
-# echo -e 
-ui_widget_select -l -m -i "${names[@]}" -t "\e[4mMenu: Select Minecraft World(s) you want to backup\e[24m"
+ui_widget_select -l -m -i "${names[@]}" -t "\e[4mMenu: Select Minecraft World(s) you want to backup\e[24m" -debug
 
 # Check if Useer exit program
 if [[ ${?} -eq 1 || "${UI_WIDGET_RC[@]}" == "" ]]; then
@@ -501,12 +500,12 @@ fi
 echo -e "\n\e[4mStart Backing up selected Minecraft World(s)\e[24m"
 
 for i in ${UI_WIDGET_RC[@]}; do
-    echo "Backing up ${names[$i+1]}..."
+    echo "Backing up ${names[$i]}..."
     # Zip the Minecraft World
-    zip -qr "${worlds[$i+1]} $NOW.zip" ${worlds[$i+1]}
+    zip -qr "${worlds[$i]} $NOW.zip" ${worlds[$i]}
     # Move to backup directory
-    mv "${worlds[$i+1]} $NOW.zip" $destination
-    echo -e "Completed backup of ${names[$i+1]}\n"
+    mv "${worlds[$i]} $NOW.zip" $destination
+    echo -e "\nCompleted backup of ${names[$i]}\n"
 done
 # Annouce backup completed and wait for User to press any key to exit program
 echo "Backup Completed"
